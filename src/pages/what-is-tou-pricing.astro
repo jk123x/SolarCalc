@@ -1,0 +1,80 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="What is Time-of-Use Pricing?">
+  <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
+    <div class="max-w-4xl mx-auto px-6 py-16">
+      <h1 class="text-5xl font-bold text-white mb-8">What is Time-of-Use (TOU) Pricing?</h1>
+      
+      <div class="prose prose-invert max-w-none">
+        <p class="text-xl text-gray-300 mb-6">
+          Time-of-Use pricing means your electricity costs different amounts depending 
+          on <strong>when</strong> you use it.
+        </p>
+
+        <h2 class="text-3xl font-bold text-white mt-8 mb-4">How It Works</h2>
+        <div class="bg-slate-800/50 rounded-lg p-6 mb-6">
+          <ul class="space-y-3 text-gray-300">
+            <li><strong class="text-green-400">Off-Peak (10pm-7am):</strong> $0.15-0.20/kWh</li>
+            <li><strong class="text-blue-400">Shoulder (7am-4pm, 9pm-10pm):</strong> $0.25-0.30/kWh</li>
+            <li><strong class="text-red-400">Peak (4pm-9pm):</strong> $0.40-0.60/kWh</li>
+          </ul>
+        </div>
+
+        <h2 class="text-3xl font-bold text-white mt-8 mb-4">Why This Matters for Batteries</h2>
+        <p class="text-gray-300 mb-4">
+          Without TOU pricing, batteries save you ~$0.30/kWh minus the $0.08/kWh feed-in tariff = $0.22/kWh.
+        </p>
+        <p class="text-gray-300 mb-4">
+          With TOU pricing, batteries save you ~$0.50/kWh (peak rate) minus $0.08/kWh = <strong class="text-green-400">$0.42/kWh</strong>.
+        </p>
+        <p class="text-xl font-bold text-green-400">
+          That's nearly DOUBLE the value! 🔋⚡
+        </p>
+
+        <h2 class="text-3xl font-bold text-white mt-8 mb-4">Should You Switch?</h2>
+        <p class="text-gray-300 mb-4">
+          TOU pricing is best if you:
+        </p>
+        <ul class="text-gray-300 space-y-2 mb-6">
+          <li>✓ Are away during the day (work/school)</li>
+          <li>✓ Use most electricity in evening</li>
+          <li>✓ Have or plan to get a battery</li>
+          <li>✓ Can shift some usage to off-peak (dishwasher, laundry)</li>
+        </ul>
+
+        <!-- Email Signup -->
+        <div class="mt-12 bg-gradient-to-br from-blue-900/50 to-cyan-900/50 rounded-xl p-8 border border-blue-500">
+          <h2 class="text-2xl font-bold text-white mb-4">Get the Complete Solar Guide</h2>
+          <p class="text-gray-300 mb-6">
+            Learn how to maximize your solar investment with our comprehensive playbook.
+          </p>
+          <form class="flex gap-3">
+            <input 
+              type="email" 
+              name="email" 
+              placeholder="your@email.com"
+              class="flex-1 px-4 py-3 rounded-lg bg-slate-800 border-2 border-slate-700 text-white"
+            />
+            <button 
+              type="submit"
+              class="px-8 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg font-semibold text-white"
+            >
+              Subscribe
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="mt-8 text-center">
+        <a 
+          href="/"
+          class="text-blue-400 hover:text-blue-300 underline"
+        >
+          ← Back to Calculator
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>
