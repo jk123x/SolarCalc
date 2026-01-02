@@ -6,21 +6,26 @@ import SolarEVCalculator from '../components/SolarEVCalculator';
 
 <Layout title="Solar Panel Decision Calculator | Expected Value Analysis">
   <SolarEVCalculator client:load />
+  
+  <!-- Newsletter CTA - Full Width -->
+  <section id="signup" class="bg-blue-900 py-10 px-6 mt-12">
+    <div class="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div class="md:max-w-lg">
+        <h2 class="text-2xl font-bold text-white mb-2">Solar Alpha: Intel To Save You Thousands</h2>
+        <p class="text-blue-200 text-sm">
+          Rebate deadlines. Battery price crashes. The "hidden costs" that installers conveniently forget to mention. One email per month.
+        </p>
+      </div>
+      <form class="flex flex-col sm:flex-row gap-3 shrink-0">
+        <input 
+          type="email" 
+          placeholder="your@email.com" 
+          class="px-4 py-3 rounded-lg text-slate-900 w-full sm:w-48 outline-none focus:ring-2 focus:ring-yellow-400"
+        />
+        <button class="bg-yellow-500 hover:bg-yellow-400 text-blue-900 font-bold px-6 py-3 rounded-lg transition shadow-lg whitespace-nowrap">
+          Get the Intel
+        </button>
+      </form>
+    </div>
+  </section>
 </Layout>
-
-<section id="signup" class="mt-12 bg-blue-900 rounded-2xl p-8 text-white text-center">
-  <h2 class="text-3xl font-bold mb-4">Want the Full 25-Year Projection PDF?</h2>
-  <p class="text-blue-100 mb-8 max-w-2xl mx-auto">
-    We'll send you a detailed breakdown of your specific ROI, including state-specific maintenance schedules and the "Hidden Costs" of solar maintenance in Australia.
-  </p>
-  <form class="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
-    <input 
-      type="email" 
-      placeholder="Enter your email" 
-      class="px-4 py-3 rounded-lg text-slate-900 flex-grow outline-none focus:ring-2 focus:ring-yellow-400"
-    />
-    <button class="bg-yellow-500 hover:bg-yellow-400 text-blue-900 font-bold px-8 py-3 rounded-lg transition shadow-lg">
-      Send My Guide
-    </button>
-  </form>
-</section>
