@@ -17,6 +17,8 @@ export const POST: APIRoute = async ({ request }) => {
       electricityRate,
       battery,
       hasTou,
+      daytimeUsagePercent,
+      joinVPP,
       // Calculation results
       systemSize,
       expectedValue,
@@ -62,6 +64,8 @@ export const POST: APIRoute = async ({ request }) => {
         electricity_rate: electricityRate,
         battery,
         has_tou: hasTou,
+        daytime_usage_percent: daytimeUsagePercent,
+        join_vpp: joinVPP,
         system_size: systemSize,
         expected_value: expectedValue,
         payback_years: paybackYears,

@@ -349,6 +349,8 @@ const SolarEVCalculator = () => {
           electricityRate: formData.electricityRate,
           battery: formData.battery,
           hasTou: formData.hasTOU,
+          daytimeUsagePercent: formData.daytimeUsagePercent,
+          joinVPP: formData.joinVPP,
           // Calculation results
           systemSize: parseFloat(estimatedSystemSize),
           expectedValue: results ? Math.round(results.ev) : 0,

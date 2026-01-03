@@ -17,8 +17,16 @@ const batteryNames: Record<string, string> = {
   'none': 'No Battery',
   'sungrow_10': 'Sungrow SBR 10.2kWh',
   'byd_hvs': 'BYD HVS 10.2kWh',
-  'tesla_powerwall3': 'Tesla Powerwall 3',
+  'tesla_powerwall3': 'Tesla Powerwall 3 (13.5kWh)',
   'sonnen_eco': 'Sonnen Eco 10'
+};
+
+const batteryInfo: Record<string, { capacity: number; degradation: number; threshold: number; premium: boolean }> = {
+  'none': { capacity: 0, degradation: 0, threshold: 0, premium: false },
+  'sungrow_10': { capacity: 10.2, degradation: 2.5, threshold: 70, premium: false },
+  'byd_hvs': { capacity: 10.2, degradation: 2.5, threshold: 70, premium: false },
+  'tesla_powerwall3': { capacity: 13.5, degradation: 2.0, threshold: 70, premium: true },
+  'sonnen_eco': { capacity: 10.0, degradation: 1.5, threshold: 80, premium: true }
 };
 
 const stateNames: Record<string, string> = {
@@ -31,6 +39,162 @@ const stateNames: Record<string, string> = {
   'nt': 'Northern Territory',
   'act': 'ACT'
 };
+
+// Calculate battery replacement year estimate
+function estimateBatteryReplacementYear(battery: string): number | null {
+  const info = batteryInfo[battery];
+  if (!info || info.capacity === 0) return null;
+  
+  const years = Math.log(info.threshold / 100) / Math.log(1 - info.degradation / 100);
+  return Math.round(years);
+}
+
+// Generate insights based on the data
+function generateInsights(data: any) {
+  const insights: { type: 'positive' | 'warning' | 'tip'; title: string; text: string }[] = [];
+  const battery = batteryInfo[data.battery] || batteryInfo['none'];
+  
+  // ROI insight
+  if (data.expectedValue > 10000) {
+    insights.push({
+      type: 'positive',
+      title: 'Strong investment',
+      text: `With an expected return of $${data.expectedValue.toLocaleString()}, this system is projected to significantly outperform the upfront cost.`
+    });
+  } else if (data.expectedValue > 0) {
+    insights.push({
+      type: 'positive',
+      title: 'Positive returns expected',
+      text: `You're projected to come out ahead, though the margin isn't huge. Consider whether you can increase self-consumption to improve returns.`
+    });
+  } else {
+    insights.push({
+      type: 'warning',
+      title: 'Marginal or negative returns',
+      text: `With current settings, this configuration may not pay for itself. See our suggestions below to improve the economics.`
+    });
+  }
+  
+  // Battery + TOU insight
+  if (data.battery !== 'none' && !data.hasTou) {
+    insights.push({
+      type: 'warning',
+      title: 'Battery without Time-of-Use pricing',
+      text: `Your battery is limited to saving the spread between your usage rate and feed-in tariff (~23c/kWh). With TOU pricing enabled, you'd save ~40c/kWh by charging during the day and using stored power during expensive peak hours. This could be worth $300-500 more per year.`
+    });
+  }
+  
+  if (data.battery !== 'none' && data.hasTou) {
+    insights.push({
+      type: 'positive',
+      title: 'Battery + TOU: Good combination',
+      text: `You're maximizing your battery's value by arbitraging between cheap solar and expensive peak power. This is the ideal setup for battery economics.`
+    });
+  }
+  
+  // Daytime usage insight
+  if (data.daytimeUsagePercent && data.daytimeUsagePercent < 30) {
+    insights.push({
+      type: 'tip',
+      title: 'Low daytime usage',
+      text: `Only ${data.daytimeUsagePercent}% of your electricity is used during daylight hours when solar is generating. Consider shifting loads like dishwashers, washing machines, and EV charging to daytime (use timers). Every 10% shift could add $200-400/year to your returns.`
+    });
+  } else if (data.daytimeUsagePercent && data.daytimeUsagePercent > 50) {
+    insights.push({
+      type: 'positive',
+      title: 'Good daytime usage profile',
+      text: `With ${data.daytimeUsagePercent}% daytime usage, you're well-positioned to self-consume most of your solar generation, which is worth more than exporting.`
+    });
+  }
+  
+  // Battery replacement insight
+  if (battery.capacity > 0) {
+    const replacementYear = estimateBatteryReplacementYear(data.battery);
+    if (replacementYear) {
+      if (battery.premium) {
+        insights.push({
+          type: 'positive',
+          title: `Premium battery longevity`,
+          text: `The ${batteryNames[data.battery]} has a lower degradation rate (${battery.degradation}%/year) and higher warranty threshold (${battery.threshold}%). It's expected to last ~${replacementYear} years before needing replacement — longer than budget options.`
+        });
+      } else {
+        insights.push({
+          type: 'tip',
+          title: `Battery replacement around year ${replacementYear}`,
+          text: `At ${battery.degradation}% annual degradation, your battery will drop below ${battery.threshold}% capacity around year ${replacementYear}. We've factored in a replacement at 65% of today's cost (batteries are getting cheaper). The premium Sonnen Eco would last ~${estimateBatteryReplacementYear('sonnen_eco')} years if longevity matters to you.`
+        });
+      }
+    }
+  }
+  
+  // System size insight
+  if (data.roofSize && data.systemSize) {
+    const maxPossibleSize = data.roofSize / 6.5;
+    if (data.systemSize < maxPossibleSize * 0.8 && data.expectedValue > 0) {
+      insights.push({
+        type: 'tip',
+        title: 'Room for a larger system',
+        text: `Your roof could fit up to ${maxPossibleSize.toFixed(1)}kW, but you're only using ${data.systemSize}kW. If your daily usage supports it, a larger system could improve returns — especially if you add an EV later.`
+      });
+    }
+  }
+  
+  // State-specific insights
+  if (data.state === 'wa') {
+    insights.push({
+      type: 'positive',
+      title: 'WA battery rebate advantage',
+      text: `Western Australia offers up to $5,000 in state battery rebates that stack with the federal rebate. This significantly improves battery economics compared to other states.`
+    });
+  } else if (data.state === 'nt') {
+    insights.push({
+      type: 'positive',
+      title: 'NT battery rebate advantage',
+      text: `Northern Territory offers up to $6,000 in state battery rebates. Combined with high solar irradiance, this makes batteries more attractive here than most of Australia.`
+    });
+  } else if (data.state === 'sa') {
+    insights.push({
+      type: 'tip',
+      title: 'High SA electricity rates',
+      text: `South Australia has some of the highest electricity prices in Australia. This actually helps your solar ROI — every kWh you self-consume is worth more.`
+    });
+  } else if (data.state === 'tas') {
+    insights.push({
+      type: 'warning',
+      title: 'Lower solar irradiance in Tasmania',
+      text: `Tasmania receives less sunlight than mainland states, which reduces generation. Your system may take longer to pay back compared to the same setup in Queensland or WA.`
+    });
+  }
+  
+  // No battery suggestion if they don't have one
+  if (data.battery === 'none' && data.expectedValue > 5000) {
+    insights.push({
+      type: 'tip',
+      title: 'Consider adding a battery later',
+      text: `Your solar-only setup looks solid. Battery prices are falling ~10% per year. Consider adding one in 2-3 years when prices drop further and you have real usage data to right-size it.`
+    });
+  }
+  
+  // VPP insight
+  if (data.joinVPP && data.battery !== 'none') {
+    insights.push({
+      type: 'positive',
+      title: 'VPP earnings included',
+      text: `We've included $120-250/year in Virtual Power Plant earnings. This varies by provider and grid conditions, so treat it as a bonus rather than a guarantee.`
+    });
+  } else if (!data.joinVPP && data.battery !== 'none') {
+    insights.push({
+      type: 'tip',
+      title: 'VPP could add extra income',
+      text: `Joining a Virtual Power Plant lets your battery earn $120-250/year by supporting the grid during peak demand. Providers like Amber, Tesla, and Reposit offer different schemes.`
+    });
+  }
+  
+  return insights;
+}
+
+const insights = reportData ? generateInsights(reportData) : [];
+const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['none']) : null;
 ---
 
 <Layout title="Your Solar Report | SolarMath">
@@ -55,7 +219,7 @@ const stateNames: Record<string, string> = {
       </div>
 
       <!-- Summary Card -->
-      <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-8 text-white mb-10">
+      <div class={`rounded-2xl p-8 text-white mb-10 ${reportData.expectedValue >= 0 ? 'bg-gradient-to-br from-blue-600 to-blue-700' : 'bg-gradient-to-br from-amber-600 to-amber-700'}`}>
         <h2 class="text-lg font-medium opacity-90 mb-4">Expected Value Over 25 Years</h2>
         <div class="text-5xl font-black mb-2">
           {reportData.expectedValue >= 0 ? '+' : '-'}${Math.abs(reportData.expectedValue).toLocaleString()}
@@ -67,6 +231,27 @@ const stateNames: Record<string, string> = {
           }
         </p>
       </div>
+
+      <!-- Key Metrics -->
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Key Metrics</h2>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="bg-slate-50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-black text-slate-900">{reportData.paybackYears}</div>
+            <div class="text-sm text-slate-600">Years to Payback</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-black text-slate-900">{reportData.systemSize}</div>
+            <div class="text-sm text-slate-600">kW System Size</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-6 text-center">
+            <div class={`text-3xl font-black ${reportData.expectedValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {reportData.expectedValue >= 0 ? '+' : ''}{((reportData.expectedValue / (reportData.systemSize * 1000)) * 100).toFixed(0)}%
+            </div>
+            <div class="text-sm text-slate-600">ROI</div>
+          </div>
+        </div>
+      </section>
 
       <!-- System Configuration -->
       <section class="mb-10">
@@ -101,50 +286,195 @@ const stateNames: Record<string, string> = {
         </div>
       </section>
 
-      <!-- Key Metrics -->
+      <!-- Personalised Insights -->
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-slate-900 mb-4">Key Metrics</h2>
-        <div class="grid md:grid-cols-3 gap-4">
-          <div class="bg-slate-50 rounded-xl p-6 text-center">
-            <div class="text-3xl font-black text-slate-900">{reportData.paybackYears}</div>
-            <div class="text-sm text-slate-600">Years to Payback</div>
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Personalised Insights</h2>
+        <div class="space-y-4">
+          {insights.map((insight) => (
+            <div class={`rounded-xl p-5 ${
+              insight.type === 'positive' ? 'bg-green-50 border border-green-200' :
+              insight.type === 'warning' ? 'bg-amber-50 border border-amber-200' :
+              'bg-blue-50 border border-blue-200'
+            }`}>
+              <h3 class={`font-bold mb-1 ${
+                insight.type === 'positive' ? 'text-green-900' :
+                insight.type === 'warning' ? 'text-amber-900' :
+                'text-blue-900'
+              }`}>
+                {insight.type === 'positive' ? '✓' : insight.type === 'warning' ? '⚠' : '💡'} {insight.title}
+              </h3>
+              <p class={`text-sm ${
+                insight.type === 'positive' ? 'text-green-800' :
+                insight.type === 'warning' ? 'text-amber-800' :
+                'text-blue-800'
+              }`}>{insight.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Battery Degradation Schedule (if applicable) -->
+      {battery && battery.capacity > 0 && (
+        <section class="mb-10">
+          <h2 class="text-xl font-bold text-slate-900 mb-4">Battery Degradation Schedule</h2>
+          <div class="bg-slate-50 rounded-xl p-6">
+            <p class="text-sm text-slate-600 mb-4">
+              Your {batteryNames[reportData.battery]} starts at {battery.capacity}kWh and degrades at {battery.degradation}% per year.
+            </p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-slate-300">
+                    <th class="py-2 text-left text-slate-600">Year</th>
+                    <th class="py-2 text-right text-slate-600">Capacity</th>
+                    <th class="py-2 text-right text-slate-600">% of Original</th>
+                    <th class="py-2 text-right text-slate-600">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[1, 5, 10, 15, 20, 25].map((year) => {
+                    const remainingPercent = Math.pow(1 - battery.degradation / 100, year) * 100;
+                    const remainingCapacity = battery.capacity * (remainingPercent / 100);
+                    const needsReplacement = remainingPercent < battery.threshold;
+                    return (
+                      <tr class="border-b border-slate-200">
+                        <td class="py-2 text-slate-900">Year {year}</td>
+                        <td class="py-2 text-right text-slate-900">{remainingCapacity.toFixed(1)} kWh</td>
+                        <td class="py-2 text-right text-slate-900">{remainingPercent.toFixed(0)}%</td>
+                        <td class={`py-2 text-right ${needsReplacement ? 'text-amber-600' : 'text-green-600'}`}>
+                          {needsReplacement ? 'Replace' : 'OK'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p class="text-xs text-slate-500 mt-4">
+              * Replacement triggered when capacity falls below {battery.threshold}%. We assume replacement cost is 65% of original (prices are falling).
+            </p>
           </div>
-          <div class="bg-slate-50 rounded-xl p-6 text-center">
-            <div class="text-3xl font-black text-slate-900">{reportData.systemSize}</div>
-            <div class="text-sm text-slate-600">kW System Size</div>
+        </section>
+      )}
+
+      <!-- What's included in this analysis -->
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">What's Included in This Analysis</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <h3 class="font-semibold text-slate-900 mb-2">✓ Included</h3>
+            <ul class="text-sm text-slate-600 space-y-1">
+              <li>• Panel degradation (0.5%/year median)</li>
+              <li>• Inverter replacement (year 12, ~$1,800)</li>
+              <li>• Annual maintenance ($120/year)</li>
+              <li>• Electricity price increases (4%/year median)</li>
+              <li>• Federal STC rebate on panels</li>
+              {reportData.battery !== 'none' && (
+                <>
+                  <li>• Federal battery rebate (~$311/kWh)</li>
+                  <li>• Battery degradation & replacement</li>
+                  <li>• Battery round-trip efficiency losses</li>
+                  <li>• Utilization factor (75% — not every day is perfect)</li>
+                </>
+              )}
+              {reportData.joinVPP && <li>• VPP earnings estimate</li>}
+              <li>• Discount rate (6% opportunity cost)</li>
+            </ul>
           </div>
-          <div class="bg-slate-50 rounded-xl p-6 text-center">
-            <div class="text-3xl font-black text-green-600">{reportData.expectedValue >= 0 ? '+' : ''}{((reportData.expectedValue / (reportData.systemSize * 1000)) * 100).toFixed(0)}%</div>
-            <div class="text-sm text-slate-600">ROI</div>
+          <div>
+            <h3 class="font-semibold text-slate-900 mb-2">✗ Not Included</h3>
+            <ul class="text-sm text-slate-600 space-y-1">
+              <li>• Property value increase (studies suggest 3-4%)</li>
+              <li>• Blackout protection value</li>
+              <li>• Carbon offset value</li>
+              <li>• EV charging optimization</li>
+              <li>• Grid tariff arbitrage (charging from grid off-peak)</li>
+              <li>• Future feed-in tariff changes</li>
+            </ul>
           </div>
         </div>
       </section>
 
-      <!-- Assumptions -->
+      <!-- Scenario Comparison -->
       <section class="mb-10">
-        <h2 class="text-xl font-bold text-slate-900 mb-4">Model Assumptions</h2>
-        <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 text-sm">
-          <p class="text-amber-800 mb-4">This projection uses probability-weighted scenarios (pessimistic, median, optimistic) and includes:</p>
-          <ul class="text-amber-700 space-y-1">
-            <li>• Panel degradation: 0.5%/year (median)</li>
-            <li>• Inverter replacement: Year 12 (~$1,800)</li>
-            <li>• Discount rate: 6% (opportunity cost of capital)</li>
-            <li>• Electricity price growth: 4%/year (median)</li>
-            <li>• Feed-in tariff: 5c/kWh</li>
-            {reportData.battery !== 'none' && (
-              <>
-                <li>• Battery utilization: 75% (not every day is perfect)</li>
-                <li>• Battery replacement: When capacity drops below threshold</li>
-              </>
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Scenario Comparison</h2>
+        <p class="text-sm text-slate-600 mb-4">
+          We model three scenarios to capture uncertainty. Your expected value is the probability-weighted average.
+        </p>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="bg-red-50 border border-red-200 rounded-xl p-5">
+            <h3 class="font-bold text-red-900 mb-2">Pessimistic (10%)</h3>
+            <ul class="text-sm text-red-800 space-y-1">
+              <li>• Higher degradation</li>
+              <li>• Lower electricity growth</li>
+              <li>• Earlier replacements</li>
+              <li>• 60% battery utilization</li>
+            </ul>
+          </div>
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+            <h3 class="font-bold text-blue-900 mb-2">Median (60%)</h3>
+            <ul class="text-sm text-blue-800 space-y-1">
+              <li>• Expected degradation</li>
+              <li>• 4% electricity growth</li>
+              <li>• Standard maintenance</li>
+              <li>• 75% battery utilization</li>
+            </ul>
+          </div>
+          <div class="bg-green-50 border border-green-200 rounded-xl p-5">
+            <h3 class="font-bold text-green-900 mb-2">Optimistic (30%)</h3>
+            <ul class="text-sm text-green-800 space-y-1">
+              <li>• Lower degradation</li>
+              <li>• Higher electricity growth</li>
+              <li>• Longer equipment life</li>
+              <li>• 85% battery utilization</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Next Steps -->
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Recommended Next Steps</h2>
+        <div class="bg-slate-50 rounded-xl p-6">
+          <ol class="space-y-4">
+            <li class="flex gap-4">
+              <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">1</span>
+              <div>
+                <h3 class="font-semibold text-slate-900">Get 3+ quotes from accredited installers</h3>
+                <p class="text-sm text-slate-600">Prices vary significantly. Use sites like SolarQuotes to compare. Look for CEC-accredited installers with strong warranties.</p>
+              </div>
+            </li>
+            <li class="flex gap-4">
+              <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">2</span>
+              <div>
+                <h3 class="font-semibold text-slate-900">Check your actual usage patterns</h3>
+                <p class="text-sm text-slate-600">Download your smart meter data from your retailer. See when you actually use power — this affects battery sizing decisions.</p>
+              </div>
+            </li>
+            <li class="flex gap-4">
+              <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">3</span>
+              <div>
+                <h3 class="font-semibold text-slate-900">Verify current rebate eligibility</h3>
+                <p class="text-sm text-slate-600">Federal battery rebates are first-come-first-served. State rebates change frequently. Confirm you qualify before committing.</p>
+              </div>
+            </li>
+            {reportData.battery !== 'none' && !reportData.hasTou && (
+              <li class="flex gap-4">
+                <span class="flex-shrink-0 w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold text-sm">!</span>
+                <div>
+                  <h3 class="font-semibold text-slate-900">Switch to a Time-of-Use tariff</h3>
+                  <p class="text-sm text-slate-600">Your battery ROI depends heavily on this. Contact your retailer about TOU options before finalizing your battery decision.</p>
+                </div>
+              </li>
             )}
-          </ul>
+          </ol>
         </div>
       </section>
 
       <!-- Disclaimer -->
       <section class="text-xs text-slate-400 border-t border-slate-200 pt-8">
-        <p class="mb-2"><strong>Disclaimer:</strong> This report provides estimates based on modeled scenarios and publicly available data. Actual results will vary based on your specific circumstances, weather, usage patterns, and future electricity prices. This is not financial advice. We recommend getting multiple quotes from accredited installers.</p>
-        <p>Report generated by SolarMath · solarmath.com.au</p>
+        <p class="mb-2"><strong>Disclaimer:</strong> This report provides estimates based on modeled scenarios and publicly available data. Actual results will vary based on your specific circumstances, weather, usage patterns, and future electricity prices. This is not financial advice. We recommend getting multiple quotes from accredited installers and consulting with a financial advisor for major investment decisions.</p>
+        <p>Report generated by SolarMath · <a href="https://solarmath.com.au" class="underline">solarmath.com.au</a></p>
       </section>
     </div>
   ) : (

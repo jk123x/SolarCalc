@@ -68,6 +68,8 @@ export const GET: APIRoute = async ({ request, redirect }) => {
       electricityRate: lead.electricity_rate,
       battery: lead.battery,
       hasTou: lead.has_tou,
+      daytimeUsagePercent: lead.daytime_usage_percent,
+      joinVPP: lead.join_vpp,
       systemSize: lead.system_size,
       expectedValue: lead.expected_value,
       paybackYears: lead.payback_years
