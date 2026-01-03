@@ -537,20 +537,19 @@ useEffect(() => {
 
         <main className="lg:col-span-8 space-y-6">
           {!results ? (
-            <div className="bg-white border border-slate-200 rounded-3xl p-8 text-center">
-               <div className="mb-6 text-4xl opacity-40">☀️</div>
-               <h3 className="text-2xl font-black text-slate-900 mb-2">Ready to calculate your <i className="text-blue-600">optimal solar strategy?</i></h3>
-               <p className="text-slate-500 max-w-md mx-auto mb-6 text-sm">Generate a realistic financial model based on Australian irradiance data, battery degradation, and federal rebates.</p>
-               
-               <div className="mt-6 rounded-2xl overflow-hidden mx-auto" style={{maxWidth: '400px'}}>
-  <img 
-    src="/images/hero-solar.png" 
-    alt="Solar panels on Australian home" 
-    className="w-full h-auto"
-  />
-</div>
-               
-               <div className="mt-6 flex flex-wrap gap-2 justify-center text-xs text-slate-400">
+  <div className="bg-white border border-slate-200 rounded-3xl p-10 md:p-12 text-center">
+    <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-4">Ready to calculate your <i className="text-blue-600">optimal solar strategy?</i></h3>
+    <p className="text-slate-500 max-w-lg mx-auto mb-8 text-sm md:text-base leading-relaxed">Generate a realistic financial model based on Australian irradiance data, battery degradation, and federal rebates.</p>
+    
+    <div className="rounded-2xl overflow-hidden mx-auto mb-8" style={{maxWidth: '420px'}}>
+      <img 
+        src="/images/hero-solar.png" 
+        alt="Solar panels on Australian home" 
+        className="w-full h-auto"
+      />
+    </div>
+    
+    <div className="flex flex-wrap gap-3 justify-center text-xs text-slate-400">
                  <span className="inline-flex items-center gap-1">
                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
                    Federal + state rebates
