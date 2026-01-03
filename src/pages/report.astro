@@ -14,6 +14,328 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
+  const batteryNames = {
+    'none': 'No Battery',
+    'sungrow_10': 'Sungrow SBR 10.2kWh',
+    'byd_hvs': 'BYD HVS 10.2kWh',
+    'tesla_powerwall3': 'Tesla Powerwall 3 (13.5kWh)',
+    'sonnen_eco': 'Sonnen Eco 10'
+  };
+
+  const batteryInfo = {
+    'none': { capacity: 0, degradation: 0, threshold: 0, premium: false },
+    'sungrow_10': { capacity: 10.2, degradation: 2.5, threshold: 70, premium: false },
+    'byd_hvs': { capacity: 10.2, degradation: 2.5, threshold: 70, premium: false },
+    'tesla_powerwall3': { capacity: 13.5, degradation: 2.0, threshold: 70, premium: true },
+    'sonnen_eco': { capacity: 10.0, degradation: 1.5, threshold: 80, premium: true }
+  };
+
+  const stateNames = {
+    'vic': 'Victoria',
+    'nsw': 'New South Wales',
+    'qld': 'Queensland',
+    'sa': 'South Australia',
+    'wa': 'Western Australia',
+    'tas': 'Tasmania',
+    'nt': 'Northern Territory',
+    'act': 'ACT'
+  };
+
+  function estimateBatteryReplacementYear(battery) {
+    const info = batteryInfo[battery];
+    if (!info || info.capacity === 0) return null;
+    const years = Math.log(info.threshold / 100) / Math.log(1 - info.degradation / 100);
+    return Math.round(years);
+  }
+
+  function generateInsights(data) {
+    const insights = [];
+    const battery = batteryInfo[data.battery] || batteryInfo['none'];
+    
+    if (data.expectedValue > 10000) {
+      insights.push({ type: 'positive', title: 'Strong investment', text: `With an expected return of $${data.expectedValue.toLocaleString()}, this system is projected to significantly outperform the upfront cost.` });
+    } else if (data.expectedValue > 0) {
+      insights.push({ type: 'positive', title: 'Positive returns expected', text: `You're projected to come out ahead, though the margin isn't huge. Consider whether you can increase self-consumption to improve returns.` });
+    } else {
+      insights.push({ type: 'warning', title: 'Marginal or negative returns', text: `With current settings, this configuration may not pay for itself. See our suggestions below to improve the economics.` });
+    }
+    
+    if (data.battery !== 'none' && !data.hasTou) {
+      insights.push({ type: 'warning', title: 'Battery without Time-of-Use pricing', text: `Your battery is limited to saving the spread between your usage rate and feed-in tariff (~23c/kWh). With TOU pricing enabled, you'd save ~40c/kWh by charging during the day and using stored power during expensive peak hours.` });
+    }
+    
+    if (data.battery !== 'none' && data.hasTou) {
+      insights.push({ type: 'positive', title: 'Battery + TOU: Good combination', text: `You're maximizing your battery's value by arbitraging between cheap solar and expensive peak power. This is the ideal setup for battery economics.` });
+    }
+    
+    if (data.daytimeUsagePercent && data.daytimeUsagePercent < 30) {
+      insights.push({ type: 'tip', title: 'Low daytime usage', text: `Only ${data.daytimeUsagePercent}% of your electricity is used during daylight hours. Consider shifting loads like dishwashers, washing machines, and EV charging to daytime using timer switches.`, affiliateLink: 'https://www.amazon.com.au/s?k=smart+timer+switch&tag=solarmath-20', affiliateCta: 'See timer switches on Amazon' });
+    } else if (data.daytimeUsagePercent && data.daytimeUsagePercent > 50) {
+      insights.push({ type: 'positive', title: 'Good daytime usage profile', text: `With ${data.daytimeUsagePercent}% daytime usage, you're well-positioned to self-consume most of your solar generation.` });
+    }
+    
+    if (battery.capacity > 0) {
+      const replacementYear = estimateBatteryReplacementYear(data.battery);
+      if (replacementYear) {
+        if (battery.premium) {
+          insights.push({ type: 'positive', title: 'Premium battery longevity', text: `The ${batteryNames[data.battery]} has a lower degradation rate (${battery.degradation}%/year). It's expected to last ~${replacementYear} years before needing replacement.` });
+        } else {
+          insights.push({ type: 'tip', title: `Battery replacement around year ${replacementYear}`, text: `At ${battery.degradation}% annual degradation, your battery will drop below ${battery.threshold}% capacity around year ${replacementYear}. We've factored in a replacement at 65% of today's cost.` });
+        }
+      }
+    }
+    
+    if (data.state === 'sa') {
+      insights.push({ type: 'tip', title: 'High SA electricity rates', text: `South Australia has some of the highest electricity prices in Australia. This actually helps your solar ROI — every kWh you self-consume is worth more.` });
+    } else if (data.state === 'tas') {
+      insights.push({ type: 'warning', title: 'Lower solar irradiance in Tasmania', text: `Tasmania receives less sunlight than mainland states. Your system may take longer to pay back compared to the same setup in Queensland or WA.` });
+    }
+    
+    if (data.battery === 'none' && data.expectedValue > 5000) {
+      insights.push({ type: 'tip', title: 'Consider adding a battery later', text: `Your solar-only setup looks solid. Battery prices are falling ~10% per year. Consider adding one in 2-3 years when prices drop further.` });
+    }
+    
+    if (!data.joinVPP && data.battery !== 'none') {
+      insights.push({ type: 'tip', title: 'VPP could add extra income', text: `Joining a Virtual Power Plant lets your battery earn $120-250/year by supporting the grid during peak demand.` });
+    }
+    
+    return insights;
+  }
+
+  function renderReport(data) {
+    const battery = batteryInfo[data.battery] || batteryInfo['none'];
+    const insights = generateInsights(data);
+    const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+    
+    const insightsHtml = insights.map(insight => {
+      const colors = {
+        positive: { bg: 'bg-green-50', border: 'border-green-200', title: 'text-green-900', text: 'text-green-800', icon: '✓' },
+        warning: { bg: 'bg-amber-50', border: 'border-amber-200', title: 'text-amber-900', text: 'text-amber-800', icon: '⚠' },
+        tip: { bg: 'bg-blue-50', border: 'border-blue-200', title: 'text-blue-900', text: 'text-blue-800', icon: '💡' }
+      };
+      const c = colors[insight.type];
+      const affiliateHtml = insight.affiliateLink ? `<a href="${insight.affiliateLink}" target="_blank" rel="noopener sponsored" class="inline-block mt-2 text-sm ${c.title} underline">${insight.affiliateCta} →</a>` : '';
+      return `<div class="rounded-xl p-5 ${c.bg} border ${c.border}">
+        <h3 class="font-bold mb-1 ${c.title}">${c.icon} ${insight.title}</h3>
+        <p class="text-sm ${c.text}">${insight.text}</p>
+        ${affiliateHtml}
+      </div>`;
+    }).join('');
+
+    let batteryTableHtml = '';
+    if (battery.capacity > 0) {
+      const rows = [1, 5, 10, 15, 20, 25].map(year => {
+        const remainingPercent = Math.pow(1 - battery.degradation / 100, year) * 100;
+        const remainingCapacity = battery.capacity * (remainingPercent / 100);
+        const needsReplacement = remainingPercent < battery.threshold;
+        return `<tr class="border-b border-slate-200">
+          <td class="py-2 text-slate-900">Year ${year}</td>
+          <td class="py-2 text-right text-slate-900">${remainingCapacity.toFixed(1)} kWh</td>
+          <td class="py-2 text-right text-slate-900">${remainingPercent.toFixed(0)}%</td>
+          <td class="py-2 text-right ${needsReplacement ? 'text-amber-600' : 'text-green-600'}">${needsReplacement ? 'Replace' : 'OK'}</td>
+        </tr>`;
+      }).join('');
+      
+      batteryTableHtml = `
+        <section class="mb-10">
+          <h2 class="text-xl font-bold text-slate-900 mb-4">Battery Degradation Schedule</h2>
+          <div class="bg-slate-50 rounded-xl p-6">
+            <p class="text-sm text-slate-600 mb-4">Your ${batteryNames[data.battery]} starts at ${battery.capacity}kWh and degrades at ${battery.degradation}% per year.</p>
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-300">
+                  <th class="py-2 text-left text-slate-600">Year</th>
+                  <th class="py-2 text-right text-slate-600">Capacity</th>
+                  <th class="py-2 text-right text-slate-600">% of Original</th>
+                  <th class="py-2 text-right text-slate-600">Status</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <p class="text-xs text-slate-500 mt-4">* Replacement triggered when capacity falls below ${battery.threshold}%. We assume replacement cost is 65% of original.</p>
+          </div>
+        </section>`;
+    }
+
+    const batteryIncludedHtml = data.battery !== 'none' ? `
+      <li>• Federal battery rebate (~$311/kWh)</li>
+      <li>• Battery degradation & replacement</li>
+      <li>• Battery round-trip efficiency losses</li>
+      <li>• Utilization factor (75%)</li>
+    ` : '';
+
+    return `
+    <div class="max-w-3xl mx-auto px-6 py-12">
+      <div class="print:hidden mb-8 flex justify-between items-center">
+        <a href="/" class="text-blue-600 hover:underline text-sm">← Back to Calculator</a>
+        <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg text-sm transition">🖨️ Print / Save PDF</button>
+      </div>
+
+      <div class="text-center mb-12 pb-8 border-b border-slate-200">
+        <h1 class="text-3xl font-black text-slate-900 mb-2">☀️ SolarMath</h1>
+        <p class="text-slate-500">25-Year Solar Investment Analysis</p>
+        <p class="text-xs text-slate-400 mt-4">Generated ${today}</p>
+      </div>
+
+      <div class="rounded-2xl p-8 text-white mb-10 ${data.expectedValue >= 0 ? 'bg-gradient-to-br from-blue-600 to-blue-700' : 'bg-gradient-to-br from-amber-600 to-amber-700'}">
+        <h2 class="text-lg font-medium opacity-90 mb-4">Expected Value Over 25 Years</h2>
+        <div class="text-5xl font-black mb-2">${data.expectedValue >= 0 ? '+' : '-'}$${Math.abs(data.expectedValue).toLocaleString()}</div>
+        <p class="opacity-75">${data.expectedValue >= 0 ? `This system is projected to return $${data.expectedValue.toLocaleString()} more than it costs.` : `This configuration may cost $${Math.abs(data.expectedValue).toLocaleString()} more than it saves.`}</p>
+      </div>
+
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Key Metrics</h2>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="bg-slate-50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-black text-slate-900">${data.paybackYears}</div>
+            <div class="text-sm text-slate-600">Years to Payback</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-black text-slate-900">${data.systemSize}</div>
+            <div class="text-sm text-slate-600">kW System Size</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-black ${data.expectedValue >= 0 ? 'text-green-600' : 'text-red-600'}">${data.expectedValue >= 0 ? '+' : ''}${((data.expectedValue / (data.systemSize * 1000)) * 100).toFixed(0)}%</div>
+            <div class="text-sm text-slate-600">ROI</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Your System Configuration</h2>
+        <div class="bg-slate-50 rounded-xl p-6">
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">Location</span>
+              <span class="font-semibold text-slate-900">${data.postcode}, ${stateNames[data.state] || data.state}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">System Size</span>
+              <span class="font-semibold text-slate-900">${data.systemSize} kW</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">Daily Usage</span>
+              <span class="font-semibold text-slate-900">${data.dailyUsage} kWh</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">Electricity Rate</span>
+              <span class="font-semibold text-slate-900">${(data.electricityRate * 100).toFixed(0)}c/kWh</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">Battery</span>
+              <span class="font-semibold text-slate-900">${batteryNames[data.battery] || 'No Battery'}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">Time-of-Use Pricing</span>
+              <span class="font-semibold text-slate-900">${data.hasTou ? 'Yes' : 'No'}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Personalised Insights</h2>
+        <div class="space-y-4">${insightsHtml}</div>
+      </section>
+
+      ${batteryTableHtml}
+
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">What's Included in This Analysis</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div>
+            <h3 class="font-semibold text-slate-900 mb-2">✓ Included</h3>
+            <ul class="text-sm text-slate-600 space-y-1">
+              <li>• Panel degradation (0.5%/year median)</li>
+              <li>• Inverter replacement (year 12, ~$1,800)</li>
+              <li>• Annual maintenance ($120/year)</li>
+              <li>• Electricity price increases (4%/year median)</li>
+              <li>• Federal STC rebate on panels</li>
+              ${batteryIncludedHtml}
+              <li>• Discount rate (6% opportunity cost)</li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="font-semibold text-slate-900 mb-2">✗ Not Included</h3>
+            <ul class="text-sm text-slate-600 space-y-1">
+              <li>• Property value increase (studies suggest 3-4%)</li>
+              <li>• Blackout protection value</li>
+              <li>• Carbon offset value</li>
+              <li>• EV charging optimization</li>
+              <li>• Future feed-in tariff changes</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Scenario Comparison</h2>
+        <p class="text-sm text-slate-600 mb-4">We model three scenarios to capture uncertainty. Your expected value is the probability-weighted average.</p>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="bg-red-50 border border-red-200 rounded-xl p-5">
+            <h3 class="font-bold text-red-900 mb-2">Pessimistic (10%)</h3>
+            <ul class="text-sm text-red-800 space-y-1">
+              <li>• Higher degradation</li>
+              <li>• Lower electricity growth</li>
+              <li>• 60% battery utilization</li>
+            </ul>
+          </div>
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+            <h3 class="font-bold text-blue-900 mb-2">Median (60%)</h3>
+            <ul class="text-sm text-blue-800 space-y-1">
+              <li>• Expected degradation</li>
+              <li>• 4% electricity growth</li>
+              <li>• 75% battery utilization</li>
+            </ul>
+          </div>
+          <div class="bg-green-50 border border-green-200 rounded-xl p-5">
+            <h3 class="font-bold text-green-900 mb-2">Optimistic (30%)</h3>
+            <ul class="text-sm text-green-800 space-y-1">
+              <li>• Lower degradation</li>
+              <li>• Higher electricity growth</li>
+              <li>• 85% battery utilization</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Recommended Next Steps</h2>
+        <div class="bg-slate-50 rounded-xl p-6">
+          <ol class="space-y-4">
+            <li class="flex gap-4">
+              <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">1</span>
+              <div>
+                <h3 class="font-semibold text-slate-900">Get 3+ quotes from accredited installers</h3>
+                <p class="text-sm text-slate-600">Prices vary significantly. Use sites like SolarQuotes to compare. Look for CEC-accredited installers.</p>
+              </div>
+            </li>
+            <li class="flex gap-4">
+              <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">2</span>
+              <div>
+                <h3 class="font-semibold text-slate-900">Check your actual usage patterns</h3>
+                <p class="text-sm text-slate-600">Download your smart meter data from your retailer. An <a href="https://www.amazon.com.au/s?k=home+energy+monitor&tag=solarmath-20" target="_blank" rel="noopener sponsored" class="text-blue-600 underline">energy monitor</a> can help track this in real-time.</p>
+              </div>
+            </li>
+            <li class="flex gap-4">
+              <span class="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm">3</span>
+              <div>
+                <h3 class="font-semibold text-slate-900">Verify current rebate eligibility</h3>
+                <p class="text-sm text-slate-600">Federal battery rebates are first-come-first-served. State rebates change frequently.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="text-xs text-slate-400 border-t border-slate-200 pt-8">
+        <p class="mb-2"><strong>Disclaimer:</strong> This report provides estimates based on modeled scenarios. Actual results will vary. This is not financial advice.</p>
+        <p class="mb-2">As an Amazon Associate, SolarMath earns from qualifying purchases.</p>
+        <p>Report generated by SolarMath · <a href="https://solarmath.com.au" class="underline">solarmath.com.au</a></p>
+      </section>
+    </div>`;
+  }
+
   const params = new URLSearchParams(window.location.search);
   const dataParam = params.get('data');
   const root = document.getElementById('report-root');
@@ -21,15 +343,22 @@ import Layout from '../layouts/Layout.astro';
   if (dataParam && root) {
     try {
       const data = JSON.parse(decodeURIComponent(dataParam));
-      console.log('Report data:', data);
-      root.innerHTML = `
-        <div class="max-w-xl mx-auto px-6 py-20 text-center">
-          <div class="text-4xl mb-4">✅</div>
-          <p class="text-slate-600">Data loaded! Expected value: $${data.expectedValue.toLocaleString()}</p>
-        </div>
-      `;
+      root.innerHTML = renderReport(data);
     } catch (e) {
       console.error('Parse error:', e);
+      root.innerHTML = `
+        <div class="max-w-xl mx-auto px-6 py-20 text-center">
+          <div class="text-6xl mb-6">🤔</div>
+          <h1 class="text-3xl font-black text-slate-900 mb-4">Something went wrong</h1>
+          <p class="text-slate-600 mb-8">We couldn't load your report data.</p>
+          <a href="/" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl transition">Back to Calculator</a>
+        </div>`;
     }
   }
 </script>
+
+<style>
+  @media print {
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  }
+</style>
