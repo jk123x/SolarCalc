@@ -1,5 +1,7 @@
 ---
 // src/pages/report.astro
+export const prerender = false;
+
 import Layout from '../layouts/Layout.astro';
 
 const dataParam = Astro.url.searchParams.get('data');
@@ -40,21 +42,17 @@ const stateNames: Record<string, string> = {
   'act': 'ACT'
 };
 
-// Calculate battery replacement year estimate
 function estimateBatteryReplacementYear(battery: string): number | null {
   const info = batteryInfo[battery];
   if (!info || info.capacity === 0) return null;
-  
   const years = Math.log(info.threshold / 100) / Math.log(1 - info.degradation / 100);
   return Math.round(years);
 }
 
-// Generate insights based on the data
 function generateInsights(data: any) {
   const insights: { type: 'positive' | 'warning' | 'tip'; title: string; text: string }[] = [];
   const battery = batteryInfo[data.battery] || batteryInfo['none'];
   
-  // ROI insight
   if (data.expectedValue > 10000) {
     insights.push({
       type: 'positive',
@@ -75,7 +73,6 @@ function generateInsights(data: any) {
     });
   }
   
-  // Battery + TOU insight
   if (data.battery !== 'none' && !data.hasTou) {
     insights.push({
       type: 'warning',
@@ -92,7 +89,6 @@ function generateInsights(data: any) {
     });
   }
   
-  // Daytime usage insight
   if (data.daytimeUsagePercent && data.daytimeUsagePercent < 30) {
     insights.push({
       type: 'tip',
@@ -107,7 +103,6 @@ function generateInsights(data: any) {
     });
   }
   
-  // Battery replacement insight
   if (battery.capacity > 0) {
     const replacementYear = estimateBatteryReplacementYear(data.battery);
     if (replacementYear) {
@@ -127,7 +122,6 @@ function generateInsights(data: any) {
     }
   }
   
-  // System size insight
   if (data.roofSize && data.systemSize) {
     const maxPossibleSize = data.roofSize / 6.5;
     if (data.systemSize < maxPossibleSize * 0.8 && data.expectedValue > 0) {
@@ -139,7 +133,6 @@ function generateInsights(data: any) {
     }
   }
   
-  // State-specific insights
   if (data.state === 'wa') {
     insights.push({
       type: 'positive',
@@ -166,7 +159,6 @@ function generateInsights(data: any) {
     });
   }
   
-  // No battery suggestion if they don't have one
   if (data.battery === 'none' && data.expectedValue > 5000) {
     insights.push({
       type: 'tip',
@@ -175,7 +167,6 @@ function generateInsights(data: any) {
     });
   }
   
-  // VPP insight
   if (data.joinVPP && data.battery !== 'none') {
     insights.push({
       type: 'positive',
@@ -200,25 +191,19 @@ const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['no
 <Layout title="Your Solar Report | SolarMath">
   {reportData ? (
     <div class="max-w-3xl mx-auto px-6 py-12">
-      <!-- Print button -->
       <div class="print:hidden mb-8 flex justify-between items-center">
         <a href="/" class="text-blue-600 hover:underline text-sm">← Back to Calculator</a>
-        <button 
-          onclick="window.print()" 
-          class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg text-sm transition"
-        >
+        <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg text-sm transition">
           🖨️ Print / Save PDF
         </button>
       </div>
 
-      <!-- Report Header -->
       <div class="text-center mb-12 pb-8 border-b border-slate-200">
         <h1 class="text-3xl font-black text-slate-900 mb-2">☀️ SolarMath</h1>
         <p class="text-slate-500">25-Year Solar Investment Analysis</p>
         <p class="text-xs text-slate-400 mt-4">Generated {new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
       </div>
 
-      <!-- Summary Card -->
       <div class={`rounded-2xl p-8 text-white mb-10 ${reportData.expectedValue >= 0 ? 'bg-gradient-to-br from-blue-600 to-blue-700' : 'bg-gradient-to-br from-amber-600 to-amber-700'}`}>
         <h2 class="text-lg font-medium opacity-90 mb-4">Expected Value Over 25 Years</h2>
         <div class="text-5xl font-black mb-2">
@@ -232,7 +217,6 @@ const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['no
         </p>
       </div>
 
-      <!-- Key Metrics -->
       <section class="mb-10">
         <h2 class="text-xl font-bold text-slate-900 mb-4">Key Metrics</h2>
         <div class="grid md:grid-cols-3 gap-4">
@@ -253,7 +237,6 @@ const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['no
         </div>
       </section>
 
-      <!-- System Configuration -->
       <section class="mb-10">
         <h2 class="text-xl font-bold text-slate-900 mb-4">Your System Configuration</h2>
         <div class="bg-slate-50 rounded-xl p-6">
@@ -286,7 +269,6 @@ const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['no
         </div>
       </section>
 
-      <!-- Personalised Insights -->
       <section class="mb-10">
         <h2 class="text-xl font-bold text-slate-900 mb-4">Personalised Insights</h2>
         <div class="space-y-4">
@@ -313,7 +295,6 @@ const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['no
         </div>
       </section>
 
-      <!-- Battery Degradation Schedule (if applicable) -->
       {battery && battery.capacity > 0 && (
         <section class="mb-10">
           <h2 class="text-xl font-bold text-slate-900 mb-4">Battery Degradation Schedule</h2>
@@ -357,7 +338,6 @@ const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['no
         </section>
       )}
 
-      <!-- What's included in this analysis -->
       <section class="mb-10">
         <h2 class="text-xl font-bold text-slate-900 mb-4">What's Included in This Analysis</h2>
         <div class="grid md:grid-cols-2 gap-6">
@@ -395,7 +375,6 @@ const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['no
         </div>
       </section>
 
-      <!-- Scenario Comparison -->
       <section class="mb-10">
         <h2 class="text-xl font-bold text-slate-900 mb-4">Scenario Comparison</h2>
         <p class="text-sm text-slate-600 mb-4">
@@ -432,7 +411,6 @@ const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['no
         </div>
       </section>
 
-      <!-- Next Steps -->
       <section class="mb-10">
         <h2 class="text-xl font-bold text-slate-900 mb-4">Recommended Next Steps</h2>
         <div class="bg-slate-50 rounded-xl p-6">
@@ -471,7 +449,6 @@ const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['no
         </div>
       </section>
 
-      <!-- Disclaimer -->
       <section class="text-xs text-slate-400 border-t border-slate-200 pt-8">
         <p class="mb-2"><strong>Disclaimer:</strong> This report provides estimates based on modeled scenarios and publicly available data. Actual results will vary based on your specific circumstances, weather, usage patterns, and future electricity prices. This is not financial advice. We recommend getting multiple quotes from accredited installers and consulting with a financial advisor for major investment decisions.</p>
         <p>Report generated by SolarMath · <a href="https://solarmath.com.au" class="underline">solarmath.com.au</a></p>
@@ -484,10 +461,7 @@ const battery = reportData ? (batteryInfo[reportData.battery] || batteryInfo['no
       <p class="text-slate-600 mb-8">
         This link doesn't contain valid report data. Run a new calculation to generate your report.
       </p>
-      <a 
-        href="/"
-        class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl transition"
-      >
+      <a href="/" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl transition">
         Go to Calculator
       </a>
     </div>
