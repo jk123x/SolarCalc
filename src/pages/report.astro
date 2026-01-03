@@ -1,0 +1,174 @@
+---
+// src/pages/report.astro
+import Layout from '../layouts/Layout.astro';
+
+const dataParam = Astro.url.searchParams.get('data');
+let reportData = null;
+
+if (dataParam) {
+  try {
+    reportData = JSON.parse(decodeURIComponent(dataParam));
+  } catch (e) {
+    // Invalid data
+  }
+}
+
+const batteryNames: Record<string, string> = {
+  'none': 'No Battery',
+  'sungrow_10': 'Sungrow SBR 10.2kWh',
+  'byd_hvs': 'BYD HVS 10.2kWh',
+  'tesla_powerwall3': 'Tesla Powerwall 3',
+  'sonnen_eco': 'Sonnen Eco 10'
+};
+
+const stateNames: Record<string, string> = {
+  'vic': 'Victoria',
+  'nsw': 'New South Wales',
+  'qld': 'Queensland',
+  'sa': 'South Australia',
+  'wa': 'Western Australia',
+  'tas': 'Tasmania',
+  'nt': 'Northern Territory',
+  'act': 'ACT'
+};
+---
+
+<Layout title="Your Solar Report | SolarMath">
+  {reportData ? (
+    <div class="max-w-3xl mx-auto px-6 py-12">
+      <!-- Print button -->
+      <div class="print:hidden mb-8 flex justify-between items-center">
+        <a href="/" class="text-blue-600 hover:underline text-sm">← Back to Calculator</a>
+        <button 
+          onclick="window.print()" 
+          class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2 rounded-lg text-sm transition"
+        >
+          🖨️ Print / Save PDF
+        </button>
+      </div>
+
+      <!-- Report Header -->
+      <div class="text-center mb-12 pb-8 border-b border-slate-200">
+        <h1 class="text-3xl font-black text-slate-900 mb-2">☀️ SolarMath</h1>
+        <p class="text-slate-500">25-Year Solar Investment Analysis</p>
+        <p class="text-xs text-slate-400 mt-4">Generated {new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      </div>
+
+      <!-- Summary Card -->
+      <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-8 text-white mb-10">
+        <h2 class="text-lg font-medium opacity-90 mb-4">Expected Value Over 25 Years</h2>
+        <div class="text-5xl font-black mb-2">
+          {reportData.expectedValue >= 0 ? '+' : '-'}${Math.abs(reportData.expectedValue).toLocaleString()}
+        </div>
+        <p class="opacity-75">
+          {reportData.expectedValue >= 0 
+            ? `This system is projected to return $${reportData.expectedValue.toLocaleString()} more than it costs.`
+            : `This configuration may cost $${Math.abs(reportData.expectedValue).toLocaleString()} more than it saves.`
+          }
+        </p>
+      </div>
+
+      <!-- System Configuration -->
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Your System Configuration</h2>
+        <div class="bg-slate-50 rounded-xl p-6">
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">Location</span>
+              <span class="font-semibold text-slate-900">{reportData.postcode}, {stateNames[reportData.state] || reportData.state}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">System Size</span>
+              <span class="font-semibold text-slate-900">{reportData.systemSize} kW</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">Daily Usage</span>
+              <span class="font-semibold text-slate-900">{reportData.dailyUsage} kWh</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">Electricity Rate</span>
+              <span class="font-semibold text-slate-900">{(reportData.electricityRate * 100).toFixed(0)}c/kWh</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">Battery</span>
+              <span class="font-semibold text-slate-900">{batteryNames[reportData.battery] || 'No Battery'}</span>
+            </div>
+            <div class="flex justify-between py-2 border-b border-slate-200">
+              <span class="text-slate-600">Time-of-Use Pricing</span>
+              <span class="font-semibold text-slate-900">{reportData.hasTou ? 'Yes' : 'No'}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Key Metrics -->
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Key Metrics</h2>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="bg-slate-50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-black text-slate-900">{reportData.paybackYears}</div>
+            <div class="text-sm text-slate-600">Years to Payback</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-black text-slate-900">{reportData.systemSize}</div>
+            <div class="text-sm text-slate-600">kW System Size</div>
+          </div>
+          <div class="bg-slate-50 rounded-xl p-6 text-center">
+            <div class="text-3xl font-black text-green-600">{reportData.expectedValue >= 0 ? '+' : ''}{((reportData.expectedValue / (reportData.systemSize * 1000)) * 100).toFixed(0)}%</div>
+            <div class="text-sm text-slate-600">ROI</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Assumptions -->
+      <section class="mb-10">
+        <h2 class="text-xl font-bold text-slate-900 mb-4">Model Assumptions</h2>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-6 text-sm">
+          <p class="text-amber-800 mb-4">This projection uses probability-weighted scenarios (pessimistic, median, optimistic) and includes:</p>
+          <ul class="text-amber-700 space-y-1">
+            <li>• Panel degradation: 0.5%/year (median)</li>
+            <li>• Inverter replacement: Year 12 (~$1,800)</li>
+            <li>• Discount rate: 6% (opportunity cost of capital)</li>
+            <li>• Electricity price growth: 4%/year (median)</li>
+            <li>• Feed-in tariff: 5c/kWh</li>
+            {reportData.battery !== 'none' && (
+              <>
+                <li>• Battery utilization: 75% (not every day is perfect)</li>
+                <li>• Battery replacement: When capacity drops below threshold</li>
+              </>
+            )}
+          </ul>
+        </div>
+      </section>
+
+      <!-- Disclaimer -->
+      <section class="text-xs text-slate-400 border-t border-slate-200 pt-8">
+        <p class="mb-2"><strong>Disclaimer:</strong> This report provides estimates based on modeled scenarios and publicly available data. Actual results will vary based on your specific circumstances, weather, usage patterns, and future electricity prices. This is not financial advice. We recommend getting multiple quotes from accredited installers.</p>
+        <p>Report generated by SolarMath · solarmath.com.au</p>
+      </section>
+    </div>
+  ) : (
+    <div class="max-w-xl mx-auto px-6 py-20 text-center">
+      <div class="text-6xl mb-6">🤔</div>
+      <h1 class="text-3xl font-black text-slate-900 mb-4">No report data found</h1>
+      <p class="text-slate-600 mb-8">
+        This link doesn't contain valid report data. Run a new calculation to generate your report.
+      </p>
+      <a 
+        href="/"
+        class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 rounded-xl transition"
+      >
+        Go to Calculator
+      </a>
+    </div>
+  )}
+</Layout>
+
+<style>
+  @media print {
+    body {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+  }
+</style>
