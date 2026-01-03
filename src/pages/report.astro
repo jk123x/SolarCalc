@@ -14,16 +14,15 @@ import Layout from '../layouts/Layout.astro';
 </Layout>
 
 <script>
-  // Parse data from URL on client side
   const params = new URLSearchParams(window.location.search);
   const dataParam = params.get('data');
+  const root = document.getElementById('report-root');
   
-  if (dataParam) {
+  if (dataParam && root) {
     try {
       const data = JSON.parse(decodeURIComponent(dataParam));
       console.log('Report data:', data);
-      // For now, just confirm it works
-      document.getElementById('report-root').innerHTML = `
+      root.innerHTML = `
         <div class="max-w-xl mx-auto px-6 py-20 text-center">
           <div class="text-4xl mb-4">✅</div>
           <p class="text-slate-600">Data loaded! Expected value: $${data.expectedValue.toLocaleString()}</p>
@@ -33,4 +32,4 @@ import Layout from '../layouts/Layout.astro';
       console.error('Parse error:', e);
     }
   }
-</script>rebuild
+</script>
