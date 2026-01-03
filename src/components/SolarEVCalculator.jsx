@@ -322,11 +322,56 @@ const SolarEVCalculator = () => {
     setLoadingSolar(false);
   };
 
-  const handleEmailSubmit = (e) => {
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const handleEmailSubmit = async (e) => {
     e.preventDefault();
-    console.log('Email submitted:', email);
-    setEmailSubmitted(true);
-    setTimeout(() => setEmailSubmitted(false), 3000);
+    setSubmitLoading(true);
+    setSubmitError('');
+
+    // Get UTM params from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          marketingConsent,
+          // Calculation inputs
+          postcode: formData.postcode,
+          state: formData.state,
+          roofSize: formData.roofSize,
+          dailyUsage: formData.dailyUsage,
+          electricityRate: formData.electricityRate,
+          battery: formData.battery,
+          hasTou: formData.hasTOU,
+          // Calculation results
+          systemSize: parseFloat(estimatedSystemSize),
+          expectedValue: results ? Math.round(results.ev) : 0,
+          paybackYears: results ? results.scenarios.median.breakeven : 0,
+          // UTM tracking
+          utmSource: urlParams.get('utm_source'),
+          utmMedium: urlParams.get('utm_medium'),
+          utmCampaign: urlParams.get('utm_campaign')
+        })
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to submit');
+      }
+
+      setEmailSubmitted(true);
+    } catch (error) {
+      console.error('Submit error:', error);
+      setSubmitError('Something went wrong. Please try again.');
+    } finally {
+      setSubmitLoading(false);
+    }
   };
 
   return (
@@ -469,7 +514,7 @@ const SolarEVCalculator = () => {
             <span className="mx-1">·</span>
             <a href="/disclaimer" className="hover:text-slate-400">Disclaimer</a>
             <span className="mx-1">·</span>
-            <a href="mailto:hello@solarev.com.au" className="hover:text-slate-400">Contact</a>
+            <a href="mailto:hello@solarmath.com.au" className="hover:text-slate-400">Contact</a>
           </p>
         </aside>
 
@@ -592,24 +637,44 @@ const SolarEVCalculator = () => {
                     <svg className="w-12 h-12 mx-auto mb-3 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p className="font-semibold">Thanks! Check your inbox.</p>
+                    <p className="font-semibold">Check your inbox to confirm and get your report.</p>
                   </div>
                 ) : (
-                  <form onSubmit={handleEmailSubmit} className="flex flex-col md:flex-row items-center gap-4">
-                    <input 
-                      type="email" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      required
-                      className="flex-1 w-full px-5 py-4 rounded-xl text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-white"
-                    />
-                    <button 
-                      type="submit"
-                      className="w-full md:w-auto bg-white text-blue-600 font-bold px-8 py-4 rounded-xl hover:bg-slate-50 transition-colors whitespace-nowrap shadow-lg"
-                    >
-                      Get My Report
-                    </button>
+                  <form onSubmit={handleEmailSubmit} className="space-y-4">
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                      <input 
+                        type="email" 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="your@email.com"
+                        required
+                        disabled={submitLoading}
+                        className="flex-1 w-full px-5 py-4 rounded-xl text-slate-900 font-medium placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-white disabled:opacity-50"
+                      />
+                      <button 
+                        type="submit"
+                        disabled={submitLoading}
+                        className="w-full md:w-auto bg-white text-blue-600 font-bold px-8 py-4 rounded-xl hover:bg-slate-50 transition-colors whitespace-nowrap shadow-lg disabled:opacity-50"
+                      >
+                        {submitLoading ? 'Sending...' : 'Get My Report'}
+                      </button>
+                    </div>
+                    
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox"
+                        checked={marketingConsent}
+                        onChange={(e) => setMarketingConsent(e.target.checked)}
+                        className="mt-1 w-4 h-4 rounded border-white/30 bg-white/10 text-blue-600 focus:ring-white/50"
+                      />
+                      <span className="text-sm opacity-80">
+                        Also send me Solar Alpha — monthly insights on rebates, battery prices, and solar intel
+                      </span>
+                    </label>
+                    
+                    {submitError && (
+                      <p className="text-red-200 text-sm">{submitError}</p>
+                    )}
                   </form>
                 )}
               </div>
