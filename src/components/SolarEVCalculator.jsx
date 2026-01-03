@@ -117,15 +117,20 @@ const SolarEVCalculator = () => {
 
   const getCoordinatesFromPostcode = (postcode) => {
     const pc = parseInt(postcode);
-    if (pc >= 2000 && pc <= 2999) return { lat: -33.86, city: 'Sydney', state: 'nsw' };
+    if (pc >= 800 && pc <= 899) return { lat: -12.46, city: 'Darwin', state: 'nt' };
+    if (pc >= 2600 && pc <= 2618) return { lat: -35.28, city: 'Canberra', state: 'act' };
+    if (pc >= 2900 && pc <= 2920) return { lat: -35.28, city: 'Canberra', state: 'act' };
+    if (pc >= 2000 && pc <= 2599) return { lat: -33.86, city: 'Sydney', state: 'nsw' };
+    if (pc >= 2619 && pc <= 2899) return { lat: -33.86, city: 'Sydney', state: 'nsw' };
+    if (pc >= 2921 && pc <= 2999) return { lat: -33.86, city: 'Sydney', state: 'nsw' };
     if (pc >= 3000 && pc <= 3999) return { lat: -37.81, city: 'Melbourne', state: 'vic' };
     if (pc >= 4000 && pc <= 4999) return { lat: -27.46, city: 'Brisbane', state: 'qld' };
     if (pc >= 5000 && pc <= 5999) return { lat: -34.92, city: 'Adelaide', state: 'sa' };
     if (pc >= 6000 && pc <= 6999) return { lat: -31.95, city: 'Perth', state: 'wa' };
-    if (pc >= 800 && pc <= 899) return { lat: -12.46, city: 'Darwin', state: 'nt' };
+    if (pc >= 7000 && pc <= 7999) return { lat: -42.88, city: 'Hobart', state: 'tas' };
     return { lat: -33.86, city: 'Sydney', state: 'nsw' };
   };
-
+  
   const calculateEV = async () => {
     if (!batteryConfig) return;
     setLoadingSolar(true);
