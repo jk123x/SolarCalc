@@ -89,35 +89,35 @@ export const POST: APIRoute = async ({ request }) => {
     const confirmUrl = `${new URL(request.url).origin}/api/confirm?token=${confirmToken}`;
 
     const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #334155; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 32px;">
-            <h1 style="color: #0f172a; font-size: 24px; margin: 0;">☀️ Solar<span style="color: #2563eb;">Math</span></h1>
-          </div>
-          
-          <h2 style="color: #0f172a; font-size: 20px;">Confirm your email to get your report</h2>
-          
-          <p>You requested a personalised 25-year solar ROI report. Click below to confirm your email and download it:</p>
-          
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="${confirmUrl}" style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">Confirm & Get My Report</a>
-          </div>
-          
-          <p style="color: #64748b; font-size: 14px;">If you didn't request this, you can ignore this email.</p>
-          
-          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;">
-          
-          <p style="color: #94a3b8; font-size: 12px; text-align: center;">
-            SolarMath · Melbourne, Australia
-          </p>
-        </body>
-      </html>
-    `;
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #334155; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <h1 style="color: #0f172a; font-size: 24px; margin: 0;">☀️ Solar<span style="color: #2563eb;">Math</span></h1>
+      </div>
+      
+      <h2 style="color: #0f172a; font-size: 20px;">Your Solar Report is Ready</h2>
+      
+      <p>Thanks for using SolarMath! Your personalised 25-year solar analysis is ready to view.</p>
+      
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${confirmUrl}" style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">View My Report →</a>
+      </div>
+      
+      <p style="color: #64748b; font-size: 14px;">This link confirms your email and opens your report.</p>
+      
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0;">
+      
+      <p style="color: #94a3b8; font-size: 12px; text-align: center;">
+        SolarMath · Melbourne, Australia
+      </p>
+    </body>
+  </html>
+`;
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',

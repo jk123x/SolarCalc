@@ -78,6 +78,16 @@ const SolarEVCalculator = () => {
     setBatteryConfig(config);
   }, []);
 
+// Add this useEffect after the other useEffects
+useEffect(() => {
+  if (formData.postcode.length === 4) {
+    const coords = getCoordinatesFromPostcode(formData.postcode);
+    if (coords.state !== formData.state) {
+      setFormData(prev => ({ ...prev, state: coords.state }));
+    }
+  }
+}, [formData.postcode]);
+
   // Federal battery rebate (~$311/kWh as of late 2025)
   const getFederalBatteryRebate = (usableCapacity) => {
     if (usableCapacity === 0) return 0;
@@ -130,7 +140,7 @@ const SolarEVCalculator = () => {
     if (pc >= 7000 && pc <= 7999) return { lat: -42.88, city: 'Hobart', state: 'tas' };
     return { lat: -33.86, city: 'Sydney', state: 'nsw' };
   };
-  
+
   const calculateEV = async () => {
     if (!batteryConfig) return;
     setLoadingSolar(true);
