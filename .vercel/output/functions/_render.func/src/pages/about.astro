@@ -1,0 +1,49 @@
+---
+// src/pages/about.astro
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="About | Solar EV Calculator">
+  <div class="max-w-3xl mx-auto px-6 py-12">
+    <a href="/" class="text-blue-600 hover:underline text-sm mb-6 inline-block">← Back to Calculator</a>
+    
+    <h1 class="text-4xl font-black text-slate-900 mb-4">About SolarMath</h1>
+    
+    <p class="text-slate-600 mb-6 text-lg">
+      A free, no-bullshit solar calculator built for Australians who want realistic numbers — not sales pitches.
+    </p>
+
+    <div class="prose prose-slate max-w-none">
+      
+      <h2 class="text-xl font-bold text-slate-900 mt-10 mb-3">Why I built this</h2>
+      <p class="text-slate-600 mb-6">
+        Most solar calculators are built by companies trying to sell you something. They use optimistic assumptions, ignore hidden costs, and conveniently forget that batteries don't always make financial sense.
+      </p>
+      <p class="text-slate-600 mb-6">
+        This calculator uses probability-weighted scenarios to show you the range of likely outcomes — not just the best case. It accounts for panel degradation, battery replacement, inverter costs, and the realistic utilization rates that other calculators ignore.
+      </p>
+
+      <h2 class="text-xl font-bold text-slate-900 mt-10 mb-3">Get in touch</h2>
+      <p class="text-slate-600 mb-6">
+        Questions, feedback, or spotted an error in the methodology? I'd love to hear from you.
+      </p>
+      <p class="text-slate-600 mb-8">
+        <a href="mailto:hello@solarmath.com.au" class="text-blue-600 hover:underline font-medium">hello@solarmath.com.au</a>
+      </p>
+
+      <h2 class="text-xl font-bold text-slate-900 mt-10 mb-3">Legal stuff</h2>
+      <p class="text-slate-600 mb-4">
+        The boring but important bits:
+      </p>
+      <ul class="text-slate-600 space-y-2 mb-6">
+        <li>
+          <a href="/privacy" class="text-blue-600 hover:underline">Privacy Policy</a> — How we handle your data (spoiler: we don't sell it)
+        </li>
+        <li>
+          <a href="/disclaimer" class="text-blue-600 hover:underline">Disclaimer</a> — This calculator provides estimates, not guarantees
+        </li>
+      </ul>
+
+    </div>
+  </div>
+</Layout>

@@ -1,0 +1,57 @@
+{
+  "lastUpdated": "2025-01-15",
+  "version": "1.0",
+  "notes": "Prices in AUD, installed. Update quarterly from solarquotes.com.au, energymatters.com.au",
+  "batteries": {
+    "none": {
+      "name": "No Battery",
+      "cost": 0,
+      "capacity": 0,
+      "degradationRate": 0,
+      "efficiency": 1.0,
+      "warranty": 0,
+      "replacementThreshold": 0,
+      "description": "Solar only, no storage"
+    },
+    "byd_hvs": {
+      "name": "BYD HVS 10.2",
+      "cost": 8000,
+      "capacity": 10.2,
+      "degradationRate": 0.03,
+      "efficiency": 0.85,
+      "warranty": 10,
+      "replacementThreshold": 0.6,
+      "description": "Budget option - good for price-conscious buyers"
+    },
+    "lg_resu10h": {
+      "name": "LG Chem RESU 10H",
+      "cost": 9500,
+      "capacity": 9.8,
+      "degradationRate": 0.025,
+      "efficiency": 0.88,
+      "warranty": 10,
+      "replacementThreshold": 0.65,
+      "description": "Mid-range - balanced performance and cost"
+    },
+    "tesla_powerwall2": {
+      "name": "Tesla Powerwall 2",
+      "cost": 14500,
+      "capacity": 13.5,
+      "degradationRate": 0.02,
+      "efficiency": 0.90,
+      "warranty": 10,
+      "replacementThreshold": 0.7,
+      "description": "Popular choice - good app, reliable"
+    },
+    "sonnen_eco": {
+      "name": "Sonnen Eco 10",
+      "cost": 16000,
+      "capacity": 10.0,
+      "degradationRate": 0.015,
+      "efficiency": 0.92,
+      "warranty": 15,
+      "replacementThreshold": 0.75,
+      "description": "Premium - longest lifespan, best efficiency"
+    }
+  }
+}

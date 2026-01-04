@@ -1,0 +1,59 @@
+{
+	"version": 3,
+	"routes": [
+		{
+			"src": "^/_astro/(.*)$",
+			"headers": {
+				"cache-control": "public, max-age=31536000, immutable"
+			},
+			"continue": true
+		},
+		{
+			"handle": "filesystem"
+		},
+		{
+			"src": "^\\/_image$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/about\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/api\\/confirm\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/api\\/subscribe\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/confirm\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/disclaimer\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/methodology\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/privacy\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/report\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/what-is-tou-pricing\\/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^\\/$",
+			"dest": "_render"
+		}
+	]
+}
